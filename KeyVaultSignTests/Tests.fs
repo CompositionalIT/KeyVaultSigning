@@ -18,6 +18,9 @@ type TestClass () =
         let signature = KeyVault.sign this.keyvault this.certificateName "Here's a message"
         // signature |> printfn "%A"
         Assert.IsNotNull(signature);
+        Assert.AreEqual(256, signature.Signature.Length)
+        Assert.IsTrue (signature.KeyId.Contains this.keyvault)
+        Assert.IsTrue (signature.KeyId.Contains this.certificateName)
 
     [<TestMethod>]
     member this.``KeyVault sign async test``() =
@@ -25,6 +28,9 @@ type TestClass () =
         let signature = KeyVault.signAsync this.keyvault this.certificateName "Here's a message" |> Async.RunSynchronously
         // signature |> printfn "%A"
         Assert.IsNotNull(signature);
+        Assert.AreEqual(256, signature.Signature.Length)
+        Assert.IsTrue (signature.KeyId.Contains this.keyvault)
+        Assert.IsTrue (signature.KeyId.Contains this.certificateName)
 
     [<TestMethod>]
     member this.``KeyVault sign and verify test``() =
@@ -35,3 +41,4 @@ type TestClass () =
         let res = KeyVault.verify this.keyvault this.certificateName msg signatureResult.Signature
         // res |> printfn "%A"
         Assert.IsNotNull(res);
+        Assert.IsTrue res.IsValid

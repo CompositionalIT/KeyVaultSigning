@@ -3,6 +3,17 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
+    <PackageId>KeyVaultSigning</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Tuomas, Isaac</Authors>
+    <Company>Fund Ourselves, Compositional-IT</Company>
+    <PackageTags>Microsoft Azure Key Vault KeyVault Signature Signing Sign Verify Certificate SHA Security SSL SignTool authentication auth key-vault HSM digital sigtanures hash hashing SHA256</PackageTags>
+    <Description>
+        This component will calculate SHA-hash for your message and then sign that with a certificate stored in Microsoft Azure KeyVault.    
+    </Description>
+    <RepositoryUrl>https://github.com/CompositionalIT/KeyVaultSigning.git</RepositoryUrl> 
+    <RepositoryType>git</RepositoryType>    
+    <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.fs" />

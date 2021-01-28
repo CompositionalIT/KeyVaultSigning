@@ -8,8 +8,9 @@
 module KeyVault
 
     open System.Text
-
+    open Azure.Identity
     open Azure.Security.KeyVault.Keys.Cryptography
+
     type Algorithms =
     | SHA256
     | SHA384
@@ -24,16 +25,26 @@ module KeyVault
 
     module internal KeyVaultInternal =
 
-        open Azure.Identity
         open Azure.Security.KeyVault.Keys
         open System
         open System.Security.Cryptography
 
         /// Create credentials using commonly-used auth methods including your current identity.
-        let azureCredentials = 
+        let azureCredentials =
+            // Install Azure CLI:
             // powershell Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
+
             // On development machine, may need: az login
-            DefaultAzureCredential ()
+            DefaultAzureCredential (
+                DefaultAzureCredentialOptions (
+                        //ExcludeEnvironmentCredential = true
+                        //,ExcludeManagedIdentityCredential = true
+                        //,ExcludeSharedTokenCacheCredential = true
+                        //,ExcludeVisualStudioCredential = true
+                        //,ExcludeVisualStudioCodeCredential = true
+                        //,ExcludeAzureCliCredential = true
+                        //,ExcludeInteractiveBrowserCredential = true
+                    ))
 
         /// Gets a client that can sign hashes for a specific key vault and client that is already installed inside.
         let getSigningClient keyVaultName certName =
