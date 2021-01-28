@@ -1,48 +1,92 @@
-﻿//#r "nuget:Azure.Security.KeyVault.Keys"
+//#r "nuget:Azure.Security.KeyVault.Keys"
 //#r "nuget:Azure.Identity"
 // --- or ---
 //#r "bin/Debug/net472/Azure.Core.dll"
 //#r "bin/Debug/net472/Azure.Identity.dll"
 //#r "bin/Debug/net472/Azure.Security.KeyVault.Keys.dll"
 
-open Azure.Security.KeyVault.Keys.Cryptography
+module KeyVault
 
-module KeyVault =
-    open Azure.Identity
-    open Azure.Security.KeyVault.Keys
-    open System
-    open System.Security.Cryptography
     open System.Text
 
-    /// Create credentials using commonly-used auth methods including your current identity.
-    let azureCredentials = 
-        // powershell Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
-        // On development machine, may need: az login
-        DefaultAzureCredential ()
+    open Azure.Security.KeyVault.Keys.Cryptography
+    type Algorithms =
+    | SHA256
+    | SHA384
 
-    /// Gets a client that can sign hashes for a specific key vault and client that is already installed inside.
-    let getSigningClient keyVaultName certName =
-        let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", azureCredentials)
-        let key = keyClient.GetKey(certName).Value
-        CryptographyClient (key.Id, azureCredentials)
+    /// You can change the algorithm: KeyVault.configureAlgorithm <- KeyVault.Algorithms.SHA384
+    /// Default is SHA256.
+    let mutable configureAlgorithm = Algorithms.SHA256
 
-    /// Creates a hash (digest) for a given string
-    let createDigest : string -> _ =
-        let hasher = new SHA256Managed()
-        Encoding.UTF8.GetBytes >> hasher.ComputeHash
+    /// You can change the encoding KeyVault.configureEncoding <- System.Text.Encoding.Unicode
+    // Default is System.Text.Encoding.UTF8
+    let mutable configureEncoding = Encoding.UTF8
 
-let signingClient = KeyVault.getSigningClient "isaac-hsm" "loantest"
-let digest = KeyVault.createDigest "Here's a message"
+    module internal KeyVaultInternal =
 
-// Sign the hash
-let signingResult = signingClient.Sign(SignatureAlgorithm.RS384, digest)
-signingResult |> printfn "%A"
+        open Azure.Identity
+        open Azure.Security.KeyVault.Keys
+        open System
+        open System.Security.Cryptography
 
-// Verify it was signed correctly
-signingClient.Verify(SignatureAlgorithm.RS384, digest, signingResult.Signature)
-|> printfn "%A"
+        /// Create credentials using commonly-used auth methods including your current identity.
+        let azureCredentials = 
+            // powershell Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
+            // On development machine, may need: az login
+            DefaultAzureCredential ()
 
-// Changing the signature will fail
-signingResult.Signature.[0] <- 43uy
-signingClient.Verify(SignatureAlgorithm.RS384, digest, signingResult.Signature)
-|> printfn "%A"
+        /// Gets a client that can sign hashes for a specific key vault and client that is already installed inside.
+        let getSigningClient keyVaultName certName =
+            let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", azureCredentials)
+            let key = keyClient.GetKey(certName).Value
+            CryptographyClient (key.Id, azureCredentials)
+
+        /// Creates a hash (digest) for a given string
+        let createDigest : string -> _ =
+            let hasher =
+                match configureAlgorithm with
+                | SHA256 -> new SHA256Managed() :> HashAlgorithm
+                | SHA384 -> new SHA384CryptoServiceProvider() :> HashAlgorithm
+            configureEncoding.GetBytes >> hasher.ComputeHash
+
+    /// Sign
+    let sign keyVaultName certName payload =
+
+        let signingClient = KeyVaultInternal.getSigningClient keyVaultName certName
+        let digest = KeyVaultInternal.createDigest payload
+
+        // Sign the hash
+        signingClient.Sign(
+            match configureAlgorithm with
+            | SHA256 -> SignatureAlgorithm.RS256
+            | SHA384 -> SignatureAlgorithm.RS384
+            , digest)
+
+    /// Sign
+    let signAsync keyVaultName certName payload =
+        async {
+            let signingClient = KeyVaultInternal.getSigningClient keyVaultName certName
+            let digest = KeyVaultInternal.createDigest payload
+
+            // Sign the hash
+            let! res = signingClient.SignAsync(
+                            match configureAlgorithm with
+                            | SHA256 -> SignatureAlgorithm.RS256
+                            | SHA384 -> SignatureAlgorithm.RS384
+                            , digest) |> Async.AwaitTask
+            return res
+        }
+
+    /// Verify
+    let verify keyVaultName certName payload signature =
+
+        let signingClient = KeyVaultInternal.getSigningClient keyVaultName certName
+        let digest = KeyVaultInternal.createDigest payload
+
+        // Verify it was signed correctly
+        signingClient.Verify(
+            match configureAlgorithm with
+            | SHA256 -> SignatureAlgorithm.RS256
+            | SHA384 -> SignatureAlgorithm.RS384
+            , digest, signature)
+
