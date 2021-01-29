@@ -6,6 +6,20 @@ open Microsoft.VisualStudio.TestTools.UnitTesting
 [<TestClass>]
 type TestClass () =
 
+    //// You can change the Azure credential funci
+    //let changeDefaultCredentials =
+    //    KeyVault.configureAzureCredentials <- fun() ->
+    //        Azure.Identity.DefaultAzureCredential (
+    //            Azure.Identity.DefaultAzureCredentialOptions (
+    //                    //ExcludeEnvironmentCredential = true
+    //                    //,ExcludeManagedIdentityCredential = true
+    //                    ExcludeSharedTokenCacheCredential = true
+    //                    ,ExcludeVisualStudioCredential = true
+    //                    //,ExcludeVisualStudioCodeCredential = true
+    //                    //,ExcludeAzureCliCredential = true
+    //                    //,ExcludeInteractiveBrowserCredential = true
+    //                ))
+
     member val keyvault = "isaac-hsm" with get, set
     member val certificateName = "loantest" with get, set
 

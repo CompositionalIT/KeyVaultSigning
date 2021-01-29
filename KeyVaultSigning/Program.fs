@@ -23,34 +23,37 @@ module KeyVault
     // Default is System.Text.Encoding.UTF8
     let mutable configureEncoding = Encoding.UTF8
 
+    /// Create credentials using commonly-used auth methods including your current identity.
+    let mutable configureAzureCredentials = fun () ->
+        // Install Azure CLI:
+        // powershell Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
+
+        // On development machine, may need: az login
+        DefaultAzureCredential (
+            DefaultAzureCredentialOptions (
+                    //ExcludeEnvironmentCredential = true
+                    //,ExcludeManagedIdentityCredential = true
+                    //,ExcludeSharedTokenCacheCredential = true
+                    //,ExcludeVisualStudioCredential = true
+                    //,ExcludeVisualStudioCodeCredential = true
+                    //,ExcludeAzureCliCredential = true
+                    //,ExcludeInteractiveBrowserCredential = true
+                ))
+
+
     module internal KeyVaultInternal =
 
         open Azure.Security.KeyVault.Keys
         open System
         open System.Security.Cryptography
 
-        /// Create credentials using commonly-used auth methods including your current identity.
-        let azureCredentials =
-            // Install Azure CLI:
-            // powershell Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
-
-            // On development machine, may need: az login
-            DefaultAzureCredential (
-                DefaultAzureCredentialOptions (
-                        //ExcludeEnvironmentCredential = true
-                        //,ExcludeManagedIdentityCredential = true
-                        //,ExcludeSharedTokenCacheCredential = true
-                        //,ExcludeVisualStudioCredential = true
-                        //,ExcludeVisualStudioCodeCredential = true
-                        //,ExcludeAzureCliCredential = true
-                        //,ExcludeInteractiveBrowserCredential = true
-                    ))
 
         /// Gets a client that can sign hashes for a specific key vault and client that is already installed inside.
         let getSigningClient keyVaultName certName =
-            let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", azureCredentials)
+            let credentials = configureAzureCredentials()
+            let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
             let key = keyClient.GetKey(certName).Value
-            CryptographyClient (key.Id, azureCredentials)
+            CryptographyClient (key.Id, credentials)
 
         /// Creates a hash (digest) for a given string
         let createDigest : string -> _ =

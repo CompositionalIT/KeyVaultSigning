@@ -21,9 +21,22 @@ Then just reference this library and call:
 KeyVault.sign "keyvault" "certificateName" "Hello world!"
 ```
 
-By default the library uses SHA256 and UTF8, but you can modify that:
+By default the library uses SHA256 and UTF8, but you can modify that, and change the Azure authentication:
 
 ```fsharp
 KeyVault.configureAlgorithm <- KeyVault.Algorithms.SHA384
 KeyVault.configureEncoding <- System.Text.Encoding.Unicode
+let changeDefaultCredentials =
+    KeyVault.configureAzureCredentials <- fun() ->
+        Azure.Identity.DefaultAzureCredential (
+            Azure.Identity.DefaultAzureCredentialOptions (
+                    //ExcludeEnvironmentCredential = true
+                    //,ExcludeManagedIdentityCredential = true
+                    ExcludeSharedTokenCacheCredential = true
+                    ,ExcludeVisualStudioCredential = true
+                    //,ExcludeVisualStudioCodeCredential = true
+                    //,ExcludeAzureCliCredential = true
+                    //,ExcludeInteractiveBrowserCredential = true
+                ))
+
 ```
