@@ -104,3 +104,19 @@ module KeyVault
             | SHA384 -> SignatureAlgorithm.RS384
             , digest, signature)
 
+    /// Verify
+    let verifyAsync keyVaultName certName payload signature =
+        async {
+
+            let signingClient = KeyVaultInternal.getSigningClient keyVaultName certName
+            let digest = KeyVaultInternal.createDigest payload
+
+            // Verify it was signed correctly
+            let! res = signingClient.VerifyAsync(
+                            match configureAlgorithm with
+                            | SHA256 -> SignatureAlgorithm.RS256
+                            | SHA384 -> SignatureAlgorithm.RS384
+                            , digest, signature) |> Async.AwaitTask
+
+            return res
+        }
