@@ -47,13 +47,62 @@ module KeyVault
         open System
         open System.Security.Cryptography
 
+        let cache =
+            System.Collections.Concurrent.ConcurrentDictionary<Tuple<string, string>, Tuple<CryptographyClient, DateTime>>()
 
+        let mutable cacheMinutes = 5.0
+        
         /// Gets a client that can sign hashes for a specific key vault and client that is already installed inside.
         let getSigningClient keyVaultName certName =
-            let credentials = configureAzureCredentials()
-            let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
-            let key = keyClient.GetKey(certName).Value
-            CryptographyClient (key.Id, credentials)
+            let cacheFunc() =
+                try
+                    cache.GetOrAdd((keyVaultName,certName), 
+                        fun (keyVaultName,certName) ->
+                            let credentials = configureAzureCredentials()
+                            let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
+                            let key = keyClient.GetKey(certName).Value
+                            CryptographyClient (key.Id, credentials), DateTime.UtcNow
+                    )
+                with
+                | e ->
+                    try
+                        cache.TryRemove((keyVaultName,certName)) |> ignore
+                    with | e2 -> ()
+                    reraise()
+
+            let cryptoClient, creationTime = cacheFunc()
+            if creationTime < DateTime.UtcNow.AddMinutes(-1. * cacheMinutes) then
+                cache.TryRemove((keyVaultName,certName)) |> ignore
+                cacheFunc() |> fst
+            else 
+                cryptoClient
+
+        /// Gets a client that can sign hashes for a specific key vault and client that is already installed inside.
+        let getSigningClientAsync keyVaultName certName =
+            task {
+                // Accept the imperfectness of async locking
+                let validItem = 
+                    if cache.ContainsKey (keyVaultName,certName) then
+                        let itmOpt =
+                            try
+                                Some cache.[(keyVaultName,certName)]
+                            with | e -> None
+
+                        match itmOpt with
+                        | Some (itm, creationTime) when creationTime < DateTime.UtcNow.AddMinutes(-1. * cacheMinutes) -> Some itm
+                        | _ -> None
+                    else None
+
+                match validItem with
+                | Some x -> return x
+                | None ->
+                    let credentials = configureAzureCredentials()
+                    let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
+                    let! key = keyClient.GetKeyAsync(certName)
+                    let cli = CryptographyClient (key.Value.Id, credentials)
+                    cache.TryAdd((keyVaultName,certName), (cli, DateTime.UtcNow)) |> ignore
+                    return cli
+            }
 
         /// Creates a hash (digest) for a given string
         let createDigest : string -> _ =
@@ -78,8 +127,8 @@ module KeyVault
 
     /// Sign
     let signAsync keyVaultName certName payload =
-        async {
-            let signingClient = KeyVaultInternal.getSigningClient keyVaultName certName
+        task {
+            let! signingClient = KeyVaultInternal.getSigningClientAsync keyVaultName certName
             let digest = KeyVaultInternal.createDigest payload
 
             // Sign the hash
@@ -87,7 +136,7 @@ module KeyVault
                             match configureAlgorithm with
                             | SHA256 -> SignatureAlgorithm.RS256
                             | SHA384 -> SignatureAlgorithm.RS384
-                            , digest) |> Async.AwaitTask
+                            , digest)
             return res
         }
 
@@ -106,9 +155,9 @@ module KeyVault
 
     /// Verify
     let verifyAsync keyVaultName certName payload signature =
-        async {
+        task {
 
-            let signingClient = KeyVaultInternal.getSigningClient keyVaultName certName
+            let! signingClient = KeyVaultInternal.getSigningClientAsync keyVaultName certName
             let digest = KeyVaultInternal.createDigest payload
 
             // Verify it was signed correctly
