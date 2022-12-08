@@ -12,6 +12,7 @@ module KeyVault
     open Azure.Identity
     open Azure.Security.KeyVault.Keys.Cryptography
     open Azure.Security.KeyVault.Secrets
+    open System.Security.Cryptography
 
     type Algorithms =
     | SHA256
@@ -183,3 +184,18 @@ module KeyVault
 
             return res
         }
+
+    /// Verify a message with a signature against a public key
+    /// To generate RSA XML from PEM file use the following online converter: https://raskeyconverter.azurewebsites.net/PemToXml?handler=ConvertXML
+    let verifyPublic (publicKeyXml:string) (signBytes:byte[]) (msg:byte[]) =
+        use RSAVerifier = new RSACryptoServiceProvider()
+        
+        RSAVerifier.FromXmlString publicKeyXml
+        let algo =
+             match configureAlgorithm with
+             | SHA256 -> "SHA256"
+             | SHA384 -> "SHA384"
+
+        let isValidsignature = RSAVerifier.VerifyData(msg, algo, signBytes)
+        isValidsignature
+
