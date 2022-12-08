@@ -7,9 +7,11 @@
 
 module KeyVault
 
+    open System
     open System.Text
     open Azure.Identity
     open Azure.Security.KeyVault.Keys.Cryptography
+    open Azure.Security.KeyVault.Secrets
 
     type Algorithms =
     | SHA256
@@ -44,8 +46,6 @@ module KeyVault
     module internal KeyVaultInternal =
 
         open Azure.Security.KeyVault.Keys
-        open Azure.Security.KeyVault.Secrets
-        open System
         open System.Security.Cryptography
 
         let cache =
@@ -113,58 +113,18 @@ module KeyVault
                 | SHA384 -> new SHA384CryptoServiceProvider() :> HashAlgorithm
             configureEncoding.GetBytes >> hasher.ComputeHash
 
-        let secretCache =
-            System.Collections.Concurrent.ConcurrentDictionary<Tuple<string, string>, Tuple<KeyVaultSecret, DateTime>>()
+    let getSecret keyVaultName secretName =
+        let credentials = configureAzureCredentials()
+        let secretClient = SecretClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
+        secretClient.GetSecret(secretName).Value
 
-        let getSecret keyVaultName secretName =
-            let cacheFunc() =
-                try
-                    secretCache.GetOrAdd((keyVaultName,secretName), 
-                        fun (keyVaultName,secretName) ->
-                            let credentials = configureAzureCredentials()
-                            let secretClient = SecretClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
-                            let secret = secretClient.GetSecret(secretName).Value
-                            secret, DateTime.UtcNow
-                    )
-                with
-                | e ->
-                    try
-                        secretCache.TryRemove((keyVaultName,secretName)) |> ignore
-                    with | e2 -> ()
-                    reraise()
-
-            let secret, creationTime = cacheFunc()
-            if creationTime < DateTime.UtcNow.AddMinutes(-1. * cacheMinutes) then
-                secretCache.TryRemove((keyVaultName,secretName)) |> ignore
-                cacheFunc() |> fst
-            else 
-                secret
-
-        let getSecretAsync keyVaultName secretName =
-            task {
-                // Accept the imperfectness of async locking
-                let validItem = 
-                    if secretCache.ContainsKey (keyVaultName,secretName) then
-                        let itmOpt =
-                            try
-                                Some secretCache.[(keyVaultName,secretName)]
-                            with | e -> None
-
-                        match itmOpt with
-                        | Some (itm, creationTime) when creationTime < DateTime.UtcNow.AddMinutes(-1. * cacheMinutes) -> Some itm
-                        | _ -> None
-                    else None
-
-                match validItem with
-                | Some x -> return x
-                | None ->
-                    let credentials = configureAzureCredentials()
-                    let secretClient = SecretClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
-                    let! key = secretClient.GetSecretAsync(secretName)
-                    let secret = key.Value
-                    secretCache.TryAdd((keyVaultName,secretName), (secret, DateTime.UtcNow)) |> ignore
-                    return secret
-            }
+    let getSecretAsync keyVaultName secretName =
+        task {
+            let credentials = configureAzureCredentials()
+            let secretClient = SecretClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
+            let! secretResponse = secretClient.GetSecretAsync(secretName)
+            return secretResponse.Value
+        }
 
     /// Sign
     let sign keyVaultName certName payload =
@@ -222,18 +182,4 @@ module KeyVault
                             , digest, signature) |> Async.AwaitTask
 
             return res
-        }
-
-    /// Verify
-    let verifyFromSecret keyVaultName certName payload secretName =
-        let secret = KeyVaultInternal.getSecret keyVaultName secretName
-        let secretBytes = secret.Value |> Encoding.ASCII.GetBytes
-        verify keyVaultName certName payload secretBytes
-
-    /// Verify
-    let verifyFromSecretAsync keyVaultName certName payload secretName =
-        task {
-            let! secret = KeyVaultInternal.getSecretAsync keyVaultName secretName
-            let secretBytes = secret.Value |> Encoding.ASCII.GetBytes
-            return! verifyAsync keyVaultName certName payload secretBytes
         }
