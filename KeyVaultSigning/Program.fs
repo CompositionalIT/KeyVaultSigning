@@ -7,9 +7,11 @@
 
 module KeyVault
 
+    open System
     open System.Text
     open Azure.Identity
     open Azure.Security.KeyVault.Keys.Cryptography
+    open Azure.Security.KeyVault.Secrets
 
     type Algorithms =
     | SHA256
@@ -44,7 +46,6 @@ module KeyVault
     module internal KeyVaultInternal =
 
         open Azure.Security.KeyVault.Keys
-        open System
         open System.Security.Cryptography
 
         let cache =
@@ -111,6 +112,19 @@ module KeyVault
                 | SHA256 -> new SHA256Managed() :> HashAlgorithm
                 | SHA384 -> new SHA384CryptoServiceProvider() :> HashAlgorithm
             configureEncoding.GetBytes >> hasher.ComputeHash
+
+    let getSecret keyVaultName secretName =
+        let credentials = configureAzureCredentials()
+        let secretClient = SecretClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
+        secretClient.GetSecret(secretName).Value
+
+    let getSecretAsync keyVaultName secretName =
+        task {
+            let credentials = configureAzureCredentials()
+            let secretClient = SecretClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
+            let! secretResponse = secretClient.GetSecretAsync(secretName)
+            return secretResponse.Value
+        }
 
     /// Sign
     let sign keyVaultName certName payload =
