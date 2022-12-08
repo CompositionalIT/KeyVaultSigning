@@ -187,15 +187,16 @@ module KeyVault
 
     /// Verify a message with a signature against a public key
     /// To generate RSA XML from PEM file use the following online converter: https://raskeyconverter.azurewebsites.net/PemToXml?handler=ConvertXML
-    let verifyPublic (publicKeyXml:string) (signBytes:byte[]) (msg:byte[]) =
+    let verifyPublic (publicKeyXml:string) (signBytes:byte[]) (msg:string) =
         use RSAVerifier = new RSACryptoServiceProvider()
-        
+
+        let msgBytes = msg |> configureEncoding.GetBytes
         RSAVerifier.FromXmlString publicKeyXml
         let algo =
              match configureAlgorithm with
              | SHA256 -> "SHA256"
              | SHA384 -> "SHA384"
 
-        let isValidsignature = RSAVerifier.VerifyData(msg, algo, signBytes)
+        let isValidsignature = RSAVerifier.VerifyData(msgBytes, algo, signBytes)
         isValidsignature
 
