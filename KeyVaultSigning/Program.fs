@@ -83,17 +83,19 @@ module KeyVault
         let getSigningClientAsync keyVaultName certName =
             task {
                 // Accept the imperfectness of async locking
-                let validItem = 
-                    if cache.ContainsKey (keyVaultName,certName) then
+                let validItem =
+                    match cache.TryGetValue ((keyVaultName,certName)) with
+                    | true, cachedVal ->
+
                         let itmOpt =
                             try
-                                Some cache.[(keyVaultName,certName)]
+                                Some cachedVal
                             with | e -> None
 
                         match itmOpt with
                         | Some (itm, creationTime) when creationTime < DateTime.UtcNow.AddMinutes(-1. * cacheMinutes) -> Some itm
                         | _ -> None
-                    else None
+                    | false, _ -> None
 
                 match validItem with
                 | Some x -> return x
