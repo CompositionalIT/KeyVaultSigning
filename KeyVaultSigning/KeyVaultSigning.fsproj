@@ -4,7 +4,8 @@
     <OutputType>Library</OutputType>
     <TargetFrameworks>netstandard2.1;net472</TargetFrameworks>
     <PackageId>KeyVaultSigning</PackageId>
-    <Version>1.0.7</Version>
+    <Version>1.0.8</Version>
+    <TargetFSharpCoreVersion>7.0.0.0</TargetFSharpCoreVersion>
     <Authors>Tuomas, Isaac</Authors>
     <Company>Fund Ourselves, Compositional-IT</Company>
     <PackageTags>Microsoft Azure Key Vault KeyVault Signature Signing Sign Verify Certificate SHA Security SSL SignTool authentication auth key-vault HSM digital sigtanures hash hashing SHA256 pem public private secret verify dotnet .net digital cert</PackageTags>
@@ -24,8 +25,11 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.8.0" />
+    <PackageReference Include="Azure.Identity" Version="1.10.2" />
     <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.4.0" />
     <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="7.0.400" />
   </ItemGroup>
 </Project>
