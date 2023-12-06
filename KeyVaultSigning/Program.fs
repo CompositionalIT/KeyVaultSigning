@@ -14,6 +14,7 @@ module KeyVault
     open Azure.Security.KeyVault.Secrets
     open System.Security.Cryptography
 
+    [<Struct>]
     type Algorithms =
     | SHA256
     | SHA384
