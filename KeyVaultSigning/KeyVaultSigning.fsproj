@@ -20,8 +20,10 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <PackageReadmeFile>Readme.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="..\Readme.md" Link="Readme.md" Pack="true" PackagePath="\" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
