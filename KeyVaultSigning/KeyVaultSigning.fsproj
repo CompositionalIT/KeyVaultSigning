@@ -4,7 +4,7 @@
     <OutputType>Library</OutputType>
     <TargetFrameworks>netstandard2.1;netstandard2.0</TargetFrameworks>
     <PackageId>KeyVaultSigning</PackageId>
-    <Version>1.0.9</Version>
+    <Version>1.0.10</Version>
     <TargetFSharpCoreVersion>8.0.0.0</TargetFSharpCoreVersion>
     <Authors>Tuomas, Isaac</Authors>
     <Company>Fund Ourselves, Compositional-IT</Company>
@@ -25,11 +25,11 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.10.4" />
-    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.5.0" />
-    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.5.0" />
+    <PackageReference Include="Azure.Identity" Version="1.11.4" />
+    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.6.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="8.0.100" />
+    <PackageReference Update="FSharp.Core" Version="8.0.200" />
   </ItemGroup>
 </Project>

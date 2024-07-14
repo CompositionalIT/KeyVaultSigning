@@ -51,7 +51,7 @@ module KeyVault
         open System.Security.Cryptography
 
         let cache =
-            System.Collections.Concurrent.ConcurrentDictionary<Tuple<string, string>, Tuple<CryptographyClient, DateTime>>()
+            System.Collections.Concurrent.ConcurrentDictionary<ValueTuple<string, string>, Tuple<CryptographyClient, DateTime>>()
 
         let mutable cacheMinutes = 5.0
         
@@ -59,8 +59,8 @@ module KeyVault
         let getSigningClient keyVaultName certName =
             let cacheFunc() =
                 try
-                    cache.GetOrAdd((keyVaultName,certName), 
-                        fun (keyVaultName,certName) ->
+                    cache.GetOrAdd((struct (keyVaultName,certName)), 
+                        fun struct (keyVaultName,certName) ->
                             let credentials = configureAzureCredentials()
                             let keyClient = KeyClient (Uri $"https://%s{keyVaultName}.vault.azure.net/", credentials)
                             let key = keyClient.GetKey(certName).Value
@@ -110,12 +110,11 @@ module KeyVault
             }
 
         /// Creates a hash (digest) for a given string
-        let createDigest : string -> _ =
-            let hasher =
-                match configureAlgorithm with
-                | SHA256 -> new SHA256Managed() :> HashAlgorithm
-                | SHA384 -> new SHA384CryptoServiceProvider() :> HashAlgorithm
-            configureEncoding.GetBytes >> hasher.ComputeHash
+        let createDigest (cont:string) =
+            let bts = configureEncoding.GetBytes cont
+            match configureAlgorithm with
+            | SHA256 -> System.Security.Cryptography.SHA256.Create().ComputeHash bts
+            | SHA384 -> System.Security.Cryptography.SHA384.Create().ComputeHash bts
 
     let getSecret keyVaultName secretName =
         let credentials = configureAzureCredentials()
