@@ -2,9 +2,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.1;netstandard2.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <PackageId>KeyVaultSigning</PackageId>
-    <Version>1.0.11</Version>
+    <Version>1.0.12</Version>
     <TargetFSharpCoreVersion>8.0.0.0</TargetFSharpCoreVersion>
     <Authors>Tuomas, Isaac</Authors>
     <Company>Fund Ourselves, Compositional-IT</Company>
@@ -21,6 +21,8 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <PackageReadmeFile>Readme.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\Readme.md" Link="Readme.md" Pack="true" PackagePath="\" />
